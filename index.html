@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>لحظه‌نگار</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a0f;
+      --surface:   #13131a;
+      --border:    #1e1e2e;
+      --accent:    #7c6af7;
+      --accent2:   #c084fc;
+      --text:      #e2e2f0;
+      --muted:     #6b6b8a;
+      --danger:    #f87171;
+      --success:   #4ade80;
+      --radius:    14px;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Vazirmatn', sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── Layout ── */
+    .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+    header {
+      padding: 20px 28px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+    }
+    .logo {
+      font-size: 1.25rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+    }
+    .logo span { font-weight: 300; }
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 5px 12px;
+      border-radius: 99px;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.4s;
+    }
+    .dot.active { background: var(--success); box-shadow: 0 0 6px var(--success); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+    main { flex: 1; padding: 28px; max-width: 1100px; margin: 0 auto; width: 100%; }
+
+    /* ── Permission Screen ── */
+    #permission-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-height: 60vh;
+      gap: 24px;
+    }
+    .perm-icon {
+      width: 88px; height: 88px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.4rem;
+      box-shadow: 0 0 40px rgba(124,106,247,.35);
+    }
+    #permission-screen h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: -0.5px; }
+    #permission-screen p { color: var(--muted); max-width: 380px; font-size: 0.95rem; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      border: none;
+      padding: 13px 32px;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s, transform .15s;
+      box-shadow: 0 4px 20px rgba(124,106,247,.4);
+    }
+    .btn-primary:hover { opacity: .9; transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+
+    /* ── Camera Screen ── */
+    #camera-screen { display: none; gap: 24px; flex-direction: column; }
+    #camera-screen.visible { display: flex; }
+
+    .camera-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 640px) { .camera-row { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .card-label {
+      padding: 12px 16px;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    video#preview {
+      width: 100%;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      display: block;
+      background: #000;
+    }
+
+    .timer-bar-wrap {
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .timer-track {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    #timer-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 99px;
+      transition: width 1s linear;
+    }
+    #timer-label { font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+
+    /* ── Last Snapshot card ── */
+    #last-snap-wrap img,
+    #last-snap-wrap .snap-placeholder {
+      width: 100%;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      display: block;
+    }
+    .snap-placeholder {
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .snap-placeholder .icon { font-size: 2.5rem; opacity: .35; }
+    .snap-meta {
+      padding: 10px 16px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .snap-meta .badge {
+      background: rgba(124,106,247,.15);
+      color: var(--accent2);
+      padding: 2px 9px;
+      border-radius: 99px;
+      font-size: 0.72rem;
+    }
+
+    /* ── Gallery ── */
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .section-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
+    #snap-count { font-size: 0.78rem; color: var(--muted); }
+
+    #gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 10px;
+    }
+    .gallery-item {
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      aspect-ratio: 4/3;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .gallery-item:hover { transform: scale(1.03); box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+    .gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .gallery-item .time-overlay {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 16px 8px 6px;
+      font-size: 0.68rem;
+      color: #fff;
+      background: linear-gradient(transparent, rgba(0,0,0,.65));
+      text-align: center;
+    }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 22px;
+      border-radius: 99px;
+      font-size: 0.85rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,.5);
+      transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+      z-index: 999;
+      pointer-events: none;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── Flash ── */
+    #flash-overlay {
+      position: fixed; inset: 0;
+      background: #fff;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 998;
+      transition: opacity .08s;
+    }
+    #flash-overlay.flash { opacity: .85; }
+
+    /* ── Lightbox ── */
+    #lightbox {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.88);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #lightbox.open { display: flex; }
+    #lightbox img {
+      max-width: 100%;
+      max-height: 90vh;
+      border-radius: var(--radius);
+      box-shadow: 0 24px 80px rgba(0,0,0,.8);
+    }
+    #lightbox-close {
+      position: absolute;
+      top: 18px; left: 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    /* spinner */
+    .spinner {
+      width: 20px; height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #error-msg {
+      color: var(--danger);
+      font-size: .85rem;
+      text-align: center;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="logo">لحظه<span>نگار</span></div>
+    <div class="status-pill">
+      <div class="dot" id="status-dot"></div>
+      <span id="status-text">آماده</span>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Permission Screen -->
+    <div id="permission-screen">
+      <div class="perm-icon">📸</div>
+      <h1>لحظه‌نگار</h1>
+      <p>هر ۶۰ ثانیه یک عکس از شما گرفته می‌شه. عکس‌ها فقط برای شما قابل مشاهده‌ست.</p>
+      <p id="error-msg">دسترسی به دوربین رد شد. لطفاً دوباره تلاش کن.</p>
+      <button class="btn-primary" id="start-btn">شروع کن ← دسترسی به دوربین</button>
+    </div>
+
+    <!-- Camera Screen -->
+    <div id="camera-screen">
+      <div class="camera-row">
+
+        <!-- Live preview -->
+        <div class="card">
+          <div class="card-label">دوربین زنده</div>
+          <video id="preview" autoplay playsinline muted></video>
+          <div class="timer-bar-wrap">
+            <div class="timer-track"><div id="timer-fill"></div></div>
+            <span id="timer-label">۶۰ ثانیه</span>
+          </div>
+        </div>
+
+        <!-- Last snapshot -->
+        <div class="card" id="last-snap-wrap">
+          <div class="card-label">آخرین عکس</div>
+          <div class="snap-placeholder">
+            <div class="icon">🖼️</div>
+            <span>هنوز عکسی گرفته نشده</span>
+          </div>
+          <div class="snap-meta">
+            <span id="last-snap-time">—</span>
+            <span class="badge" id="upload-status">منتظر</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Gallery -->
+      <div>
+        <div class="section-head">
+          <span class="section-title">تمام عکس‌های من</span>
+          <span id="snap-count">در حال بارگذاری…</span>
+        </div>
+        <div id="gallery"></div>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+<!-- Flash overlay -->
+<div id="flash-overlay"></div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Lightbox -->
+<div id="lightbox">
+  <div id="lightbox-close">✕</div>
+  <img id="lightbox-img" src="" alt="عکس بزرگ‌شده" />
+</div>
+
+<script type="module">
+  // ── Config ──────────────────────────────────────────────
+  const SUPABASE_URL    = 'https://valzbyszmujhmshsnjib.supabase.co';
+  const SUPABASE_ANON   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhbHpieXN6bXVqaG1zaHNuamliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5ODQwMTgsImV4cCI6MjA5NjU2MDAxOH0.lEO4Q7k1jkrEuWQ4LDWsLfHqIM1XtT3UzPr64Ar4fQY';
+  const BUCKET          = 'snapshots';
+  const INTERVAL_SEC    = 60;
+
+  // ── User ID (persistent) ─────────────────────────────────
+  let userId = localStorage.getItem('snapshot_uid');
+  if (!userId) {
+    userId = 'u_' + crypto.randomUUID();
+    localStorage.setItem('snapshot_uid', userId);
+  }
+
+  // ── Supabase helpers ─────────────────────────────────────
+  const headers = {
+    'apikey': SUPABASE_ANON,
+    'Authorization': `Bearer ${SUPABASE_ANON}`,
+    'Content-Type': 'application/json',
+  };
+
+  async function uploadImage(blob, filename) {
+    const path = `${userId}/${filename}`;
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Content-Type': 'image/jpeg' },
+      body: blob,
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    return path;
+  }
+
+  async function saveRecord(path) {
+    const imageUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/snapshots`, {
+      method: 'POST',
+      headers: { ...headers, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ user_id: userId, image_url: imageUrl }),
+    });
+    if (!res.ok) throw new Error('DB insert failed');
+    return imageUrl;
+  }
+
+  async function loadSnapshots() {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/snapshots?user_id=eq.${userId}&order=created_at.desc&limit=50`,
+      { headers }
+    );
+    if (!res.ok) throw new Error('Load failed');
+    return res.json();
+  }
+
+  // ── DOM refs ─────────────────────────────────────────────
+  const startBtn       = document.getElementById('start-btn');
+  const permScreen     = document.getElementById('permission-screen');
+  const camScreen      = document.getElementById('camera-screen');
+  const videoEl        = document.getElementById('preview');
+  const timerFill      = document.getElementById('timer-fill');
+  const timerLabel     = document.getElementById('timer-label');
+  const lastSnapWrap   = document.getElementById('last-snap-wrap');
+  const lastSnapTime   = document.getElementById('last-snap-time');
+  const uploadStatus   = document.getElementById('upload-status');
+  const gallery        = document.getElementById('gallery');
+  const snapCount      = document.getElementById('snap-count');
+  const statusDot      = document.getElementById('status-dot');
+  const statusText     = document.getElementById('status-text');
+  const flashOverlay   = document.getElementById('flash-overlay');
+  const toastEl        = document.getElementById('toast');
+  const lightbox       = document.getElementById('lightbox');
+  const lightboxImg    = document.getElementById('lightbox-img');
+  const lightboxClose  = document.getElementById('lightbox-close');
+  const errorMsg       = document.getElementById('error-msg');
+
+  // ── Toast ─────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3000);
+  }
+
+  // ── Flash ─────────────────────────────────────────────────
+  function doFlash() {
+    flashOverlay.classList.add('flash');
+    setTimeout(() => flashOverlay.classList.remove('flash'), 150);
+  }
+
+  // ── Timer ─────────────────────────────────────────────────
+  let elapsed = 0;
+  let timerInterval;
+  function startTimer() {
+    elapsed = 0;
+    timerFill.style.width = '0%';
+    timerLabel.textContent = `${INTERVAL_SEC} ثانیه`;
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      elapsed++;
+      const pct = (elapsed / INTERVAL_SEC) * 100;
+      timerFill.style.width = pct + '%';
+      const remaining = INTERVAL_SEC - elapsed;
+      timerLabel.textContent = `${remaining} ثانیه`;
+      if (elapsed >= INTERVAL_SEC) {
+        clearInterval(timerInterval);
+        captureAndUpload();
+      }
+    }, 1000);
+  }
+
+  // ── Capture ───────────────────────────────────────────────
+  const canvas = document.createElement('canvas');
+  async function captureAndUpload() {
+    doFlash();
+
+    canvas.width  = videoEl.videoWidth  || 1280;
+    canvas.height = videoEl.videoHeight || 720;
+    canvas.getContext('2d').drawImage(videoEl, 0, 0);
+
+    canvas.toBlob(async (blob) => {
+      const now      = new Date();
+      const filename = `snap_${now.getTime()}.jpg`;
+
+      // Optimistic UI: show captured frame immediately
+      const localUrl = URL.createObjectURL(blob);
+      setLastSnap(localUrl, now, '⏳ آپلود…');
+
+      try {
+        const path     = await uploadImage(blob, filename);
+        const finalUrl = await saveRecord(path);
+        setLastSnap(finalUrl, now, '✓ ذخیره شد');
+        showToast('عکس جدید ذخیره شد 📸');
+        addGalleryItem(finalUrl, now);
+        updateCount(1);
+      } catch (err) {
+        console.error(err);
+        uploadStatus.textContent = '✗ خطا';
+        showToast('خطا در آپلود عکس');
+      }
+
+      startTimer();
+    }, 'image/jpeg', 0.85);
+  }
+
+  function setLastSnap(url, date, status) {
+    const label = lastSnapWrap.querySelector('.card-label').outerHTML;
+    const meta  = `<div class="snap-meta">
+      <span id="last-snap-time">${formatDate(date)}</span>
+      <span class="badge" id="upload-status">${status}</span>
+    </div>`;
+    lastSnapWrap.innerHTML = label + `<img src="${url}" alt="آخرین عکس" />` + meta;
+  }
+
+  // ── Gallery ───────────────────────────────────────────────
+  let totalSnaps = 0;
+  function updateCount(delta) {
+    totalSnaps += delta;
+    snapCount.textContent = `${totalSnaps} عکس`;
+  }
+
+  function addGalleryItem(url, date, prepend = true) {
+    const div = document.createElement('div');
+    div.className = 'gallery-item';
+    div.innerHTML = `<img src="${url}" alt="عکس" loading="lazy" /><div class="time-overlay">${formatDate(date)}</div>`;
+    div.addEventListener('click', () => openLightbox(url));
+    prepend ? gallery.prepend(div) : gallery.appendChild(div);
+  }
+
+  function openLightbox(url) {
+    lightboxImg.src = url;
+    lightbox.classList.add('open');
+  }
+  lightboxClose.addEventListener('click', () => lightbox.classList.remove('open'));
+  lightbox.addEventListener('click', e => { if (e.target === lightbox) lightbox.classList.remove('open'); });
+
+  // ── Format date (Persian-style numerals) ──────────────────
+  function formatDate(d) {
+    return d.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) +
+           ' — ' +
+           d.toLocaleDateString('fa-IR', { month: 'short', day: 'numeric' });
+  }
+
+  // ── Start ─────────────────────────────────────────────────
+  startBtn.addEventListener('click', async () => {
+    errorMsg.style.display = 'none';
+    startBtn.innerHTML = '<span class="spinner"></span>';
+    startBtn.disabled = true;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      videoEl.srcObject = stream;
+      await videoEl.play();
+
+      permScreen.style.display = 'none';
+      camScreen.classList.add('visible');
+      statusDot.classList.add('active');
+      statusText.textContent = 'در حال ضبط';
+
+      // Load past snapshots
+      try {
+        const rows = await loadSnapshots();
+        totalSnaps = rows.length;
+        snapCount.textContent = `${totalSnaps} عکس`;
+        rows.forEach(r => addGalleryItem(r.image_url, new Date(r.created_at), false));
+        if (rows.length === 0) snapCount.textContent = '۰ عکس';
+      } catch {
+        snapCount.textContent = 'خطا در بارگذاری';
+      }
+
+      // Take first snap after 3s, then every 60s
+      setTimeout(() => captureAndUpload(), 3000);
+
+    } catch (err) {
+      console.error(err);
+      errorMsg.style.display = 'block';
+      startBtn.innerHTML = 'شروع کن ← دسترسی به دوربین';
+      startBtn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
